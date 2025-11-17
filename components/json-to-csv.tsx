@@ -69,7 +69,9 @@ export function JSONToCSVPage() {
   };
 
   const handleDownload = () => {
-    downloadFile(output, fileName || 'converted.csv', 'text/csv');
+    const baseName = fileName || 'converted';
+    const csvFileName = baseName.replace(/\.[^/.]+$/, '') + '.csv';
+    downloadFile(output, csvFileName, 'text/csv');
   };
 
   const handleDownloadItem = (index: number) => {

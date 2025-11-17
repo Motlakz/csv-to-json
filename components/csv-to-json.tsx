@@ -70,7 +70,9 @@ export function CSVToJSONPage() {
   };
 
   const handleDownload = () => {
-    downloadFile(output, fileName || 'converted.json', 'application/json');
+    const baseName = fileName || 'converted';
+    const jsonFileName = baseName.replace(/\.[^/.]+$/, '') + '.json';
+    downloadFile(output, jsonFileName, 'application/json');
   };
 
   const handleDownloadItem = (index: number) => {

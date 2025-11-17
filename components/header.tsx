@@ -10,7 +10,7 @@ interface HeaderProps {
 
 export function Header({ title }: HeaderProps) {
   return (
-    <header className="flex items-center justify-between px-8 py-6 border-b border-gray-200 dark:border-gray-800">
+    <header className="flex items-center justify-between px-6 py-4.5 border-b border-gray-200 dark:border-gray-800">
       <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
         {title}
       </h1>

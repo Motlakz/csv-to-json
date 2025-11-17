@@ -1,7 +1,7 @@
 export type ConversionType = 'csv-to-json' | 'json-to-csv';
 export type ViewMode = 'code' | 'table' | 'grid';
-
 export type SharePlatform = 'google-drive' | 'onedrive' | 'dropbox' | 'whatsapp' | 'teams' | 'email' | 'link';
+export type PageType = 'converter' | 'all-files' | 'shared-files';
 
 export interface ConversionHistoryItem {
   id: string;

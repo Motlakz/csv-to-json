@@ -4,7 +4,7 @@ import { CSVToJSONPage } from "@/components/csv-to-json";
 import { Header } from "@/components/header";
 import { HistorySidebar } from "@/components/history-sidebar";
 import { JSONToCSVPage } from "@/components/json-to-csv";
-import { PromotionCard } from "@/components/promo-card";
+import { LoveTestPromoCard } from "@/components/love-test-promo-card";
 import { QuickHistoryWidget } from "@/components/quick-history-widget";
 import { RecommendedTools } from "@/components/recommended-tools";
 import { Sidebar } from "@/components/sidebar";
@@ -13,10 +13,9 @@ import { useHistoryStore, useHydratedHistoryStore } from "@/lib/history-store";
 import { AnimatePresence } from "framer-motion";
 import { useState, Suspense } from "react";
 import { SharedFileHandler } from "@/components/shared-file-handler";
-import { SharePlatform } from "@/types";
+import { PageType, SharePlatform } from "@/types";
 import { useSearchParams } from "next/navigation";
-
-type PageType = 'converter' | 'all-files' | 'shared-files' | 'support';
+import { QuolliePromo } from "../components/common/quollie-promo";
 
 function HomePage() {
   const [currentPage, setCurrentPage] = useState<'csv-to-json' | 'json-to-csv'>('csv-to-json');
@@ -31,8 +30,12 @@ function HomePage() {
   const getAllFiles = useHistoryStore((state) => state.getAllFiles);
   const getSharedFiles = useHistoryStore((state) => state.getSharedFiles);
 
-  // Check if there's a shared file in the URL - use searchParams to avoid hydration issues
-  const hasSharedFile = searchParams.get('shared') === 'true';
+  // Check if there's a shared file in the URL
+  // New format: ?s=q/h/db (query/hash/database)
+  // Old format: ?shared=true
+  const newShareType = searchParams.get('s');
+  const oldShareType = searchParams.get('shared');
+  const hasSharedFile = newShareType !== null || oldShareType === 'true' || oldShareType === 'embedded';
 
   const handleNavigate = (page: PageType) => {
     setActivePage(page);
@@ -53,8 +56,8 @@ function HomePage() {
         return 'All Files';
       case 'shared-files':
         return 'Shared Files';
-        default:
-        return 'Fast Convert';
+      default:
+        return 'Swift Convert';
     }
   };
 
@@ -62,16 +65,14 @@ function HomePage() {
   if (hasSharedFile) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Header title="Shared File" />
-        <main className="py-8">
-          <SharedFileHandler />
-        </main>
+        <SharedFileHandler />
       </div>
     );
   }
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+      <QuolliePromo />
       <Sidebar
         currentPage={currentPage}
         activePage={activePage}
@@ -101,7 +102,7 @@ function HomePage() {
                   </div>
 
                   <div className="space-y-6">
-                    <PromotionCard />
+                    <LoveTestPromoCard />
                     <QuickHistoryWidget onViewAll={() => setActivePage('all-files')} />
                     <RecommendedTools onNavigate={(page) => setCurrentPage(page)} />
                   </div>
@@ -122,7 +123,7 @@ function HomePage() {
                   onDeleteFile={deleteHistoryItem}
                   onShareFile={handleShareFile}
                 />
-                ) : null}
+              ) : null}
             </AnimatePresence>
           </div>
         </main>

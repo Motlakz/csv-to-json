@@ -56,7 +56,7 @@ export function ShareDialog({ open, onOpenChange, item, onShareComplete }: Share
       // Create enhanced share data with metadata
       const shareData = {
         title: `${item.fileName || 'Converted File'} (${item.type.toUpperCase()})`,
-        text: `Check out this ${item.type === 'csv-to-json' ? 'JSON' : 'CSV'} file I converted using Fast Convert.`,
+        text: `Check out this ${item.type === 'csv-to-json' ? 'JSON' : 'CSV'} file I converted using Swift Convert.`,
         url: `${window.location.origin}?shared=${item.id}&timestamp=${Date.now()}`,
         metadata: {
           fileName: item.fileName,

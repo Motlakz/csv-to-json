@@ -1,9 +1,12 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Home, FileText, Share2, HelpCircle, Code, Database } from 'lucide-react';
-
-type PageType = 'converter' | 'all-files' | 'shared-files' | 'support';
+import { Home, FileText, Share2, Code, Database } from 'lucide-react';
+import Image from 'next/image';
+import { MRRLeaderboardPromoCard } from './common/mrr-leaderboard-promo';
+import { PageType } from '@/types';
+import { Separator } from './ui/separator';
 
 interface SidebarProps {
   currentPage: 'csv-to-json' | 'json-to-csv';
@@ -32,25 +35,17 @@ export function Sidebar({ currentPage, activePage, onNavigate, onShowHistory }: 
       page: 'shared-files' as PageType,
       active: activePage === 'shared-files'
     },
-    {
-      icon: HelpCircle,
-      label: 'Support',
-      page: 'support' as PageType,
-      active: activePage === 'support'
-    },
-      ];
+  ];
 
   return (
-    <aside className="w-64 h-screen sticky top-0 border-r flex flex-col bg-white dark:bg-gray-900">
-      <div className="p-6">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-white">
-              <path d="M7 7H17M7 12H17M7 17H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
+    <aside className="w-64 h-screen sticky top-0 border-r bg-white dark:bg-gray-900">
+      <div className="p-2">
+        <div className="flex pb-2 items-center gap-3 mb-4 border-b">
+          <div className="p-1 rounded-xl flex items-center justify-center">
+            <Image src="/logo.png" alt="Swift Convert" width={48} height={48}/>
           </div>
           <span className="text-xl font-bold text-gray-900 dark:text-white">
-            Fast Convert
+            Swift Convert
           </span>
         </div>
 
@@ -63,9 +58,6 @@ export function Sidebar({ currentPage, activePage, onNavigate, onShowHistory }: 
               onClick={() => {
                 if (item.page === 'converter') {
                   onShowHistory();
-                } else if (item.page === 'support') {
-                  // Open support center in new tab/window
-                  window.open('/support', '_blank');
                 } else {
                   onNavigate(item.page);
                 }
@@ -88,8 +80,10 @@ export function Sidebar({ currentPage, activePage, onNavigate, onShowHistory }: 
           ))}
         </nav>
 
+        <Separator className="my-4" />
+
         {/* Quick Actions */}
-        <div className="mt-8 space-y-2">
+        <div className="space-y-2 overflow-y-auto overflow-hidden max-h-[200px]">
           <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             Quick Convert
           </h3>
@@ -128,9 +122,12 @@ export function Sidebar({ currentPage, activePage, onNavigate, onShowHistory }: 
         </div>
       </div>
 
-      {/* Storage Indicator */}
-      <div className="mt-auto p-6 border-t border-gray-200 dark:border-gray-800">
-        <StorageIndicator />
+      {/* Promo + Storage Section */}
+      <div className="p-2 mt-8 border-t border-gray-200 dark:border-gray-800">
+        <div className="flex flex-col gap-2">
+          <MRRLeaderboardPromoCard />
+          <StorageIndicator />
+        </div>
       </div>
     </aside>
   );
@@ -188,7 +185,7 @@ function StorageIndicator() {
   }, []);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 p-2">
       <div className="flex items-center justify-between text-xs">
         <span className="text-gray-500 dark:text-gray-400">Storage Used</span>
         <span className="text-gray-700 dark:text-gray-300">{storageUsed}</span>
