@@ -20,6 +20,12 @@ export const metadata: Metadata = {
   description: "Quickly convert CSV files to JSON online. Fast, reliable, and easy-to-use CSV to JSON tool for developers, analysts, and data enthusiasts.",
   keywords: [
     "CSV to JSON",
+    "CSV to XLSX",
+    "CSV to TSV",
+    "CSV to YAML",
+    "CSV to XML",
+    "CSV to TXT",
+    "CSV to Markdown",
     "CSV to JSON converter",
     "convert CSV to JSON online",
     "CSV JSON tool",
@@ -29,7 +35,10 @@ export const metadata: Metadata = {
     "CSV to JSON free",
     "CSV to JSON format",
     "CSV JSON export",
-    "CSV file to JSON file"
+    "CSV file to JSON file",
+    "JSON to CSV",
+    "JSON to Excel",
+    "Excel to JSON",
   ],
   openGraph: {
     title: "CSV to JSON Converter | Swift Convert",
