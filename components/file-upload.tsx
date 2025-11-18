@@ -7,7 +7,7 @@ import { BiSolidFileJson } from 'react-icons/bi';
 import { BiSolidFileTxt } from 'react-icons/bi';
 
 interface FileUploadProps {
-  onFileLoad: (content: string, fileName: string) => void;
+  onFileLoad: (content: string, fileName: string, file?: File) => void;
   acceptedFormats: string;
   allowMultiple?: boolean;
 }
@@ -122,7 +122,7 @@ export function FileUpload({ onFileLoad, acceptedFormats, allowMultiple = false 
       );
 
       if (processedFile.status === 'success') {
-        onFileLoad(processedFile.content, processedFile.file.name);
+        onFileLoad(processedFile.content, processedFile.file.name, processedFile.file);
       }
     }
 
@@ -166,7 +166,7 @@ export function FileUpload({ onFileLoad, acceptedFormats, allowMultiple = false 
       );
 
       if (processedFile.status === 'success') {
-        onFileLoad(processedFile.content, processedFile.file.name);
+        onFileLoad(processedFile.content, processedFile.file.name, processedFile.file);
       }
     }
 

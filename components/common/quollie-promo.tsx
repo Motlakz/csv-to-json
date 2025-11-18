@@ -35,7 +35,7 @@ export function QuolliePromo() {
           exit={{ opacity: 0, y: 20, scale: 0.9 }}
           transition={{ duration: 0.2 }}
           onClick={() => setIsMinimized(false)}
-          className="fixed bottom-4 right-4 h-12 px-3 flex items-center gap-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-full shadow-lg cursor-pointer select-none z-50"
+          className="fixed bottom-3 sm:bottom-4 right-3 sm:right-4 h-10 sm:h-12 px-2.5 sm:px-3 flex items-center gap-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-full shadow-lg cursor-pointer select-none z-50 max-w-[min(240px,calc(100vw-1.5rem))]"
         >
           <Bot size={16} className="text-violet-500" />
           <span className="text-sm font-medium">Quollie</span>
@@ -51,7 +51,7 @@ export function QuolliePromo() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.95 }}
           transition={{ duration: 0.25 }}
-          className="fixed bottom-4 right-4 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-300 p-3 rounded-xl shadow-xl max-w-[250px] z-50 border dark:border-gray-700 border-gray-200"
+          className="fixed bottom-3 sm:bottom-4 right-3 sm:right-4 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-300 p-2.5 sm:p-3 rounded-xl shadow-xl max-w-[min(250px,calc(100vw-1.5rem))] z-50 border dark:border-gray-700 border-gray-200"
         >
           {/* Minimize */}
           <button
@@ -62,9 +62,9 @@ export function QuolliePromo() {
           </button>
 
           <div className="space-y-2">
-            <h3 className="font-semibold text-base">Quollie</h3>
+            <h3 className="font-semibold text-sm sm:text-base">Quollie</h3>
 
-            <p className="text-xs text-gray-600 dark:text-gray-400 leading-snug">
+            <p className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-400 leading-snug">
               Automate inbound replies, route leads to CRM, send campaigns, and
               track payments with one lightweight sales engine.
             </p>
@@ -73,7 +73,7 @@ export function QuolliePromo() {
               href="https://quollie.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-1 w-full bg-violet-500 hover:bg-pink-500 text-white py-1.5 rounded-md text-sm font-medium transition-all"
+              className="flex items-center justify-center gap-1 w-full bg-violet-500 hover:bg-pink-500 text-white py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all"
             >
               Visit Quollie <ExternalLink size={14} />
             </Link>

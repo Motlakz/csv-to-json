@@ -2,20 +2,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Home, FileText, Share2, Code, Database } from 'lucide-react';
+import { Home, FileText, Share2, FileSpreadsheet } from 'lucide-react';
 import Image from 'next/image';
-import { MRRLeaderboardPromoCard } from './common/mrr-leaderboard-promo';
 import { PageType } from '@/types';
+import { MRRLeaderboardPromoCard } from './common/mrr-leaderboard-promo';
 import { Separator } from './ui/separator';
+import { VscJson } from 'react-icons/vsc';
+import { PiFileCsvDuotone } from 'react-icons/pi';
 
 interface SidebarProps {
-  currentPage: 'csv-to-json' | 'json-to-csv';
+  currentPage: 'csv-to-json' | 'json-to-csv' | 'json-to-excel' | 'excel-to-json';
   activePage: PageType;
   onNavigate: (page: PageType) => void;
   onShowHistory: () => void;
+  onSetConverter: (converter: 'csv-to-json' | 'json-to-csv' | 'json-to-excel' | 'excel-to-json') => void;
 }
 
-export function Sidebar({ currentPage, activePage, onNavigate, onShowHistory }: SidebarProps) {
+export function Sidebar({ currentPage, activePage, onNavigate, onShowHistory, onSetConverter }: SidebarProps) {
   const menuItems = [
     {
       icon: Home,
@@ -38,8 +41,8 @@ export function Sidebar({ currentPage, activePage, onNavigate, onShowHistory }: 
   ];
 
   return (
-    <aside className="w-64 h-screen sticky top-0 border-r bg-white dark:bg-gray-900">
-      <div className="p-2">
+    <aside className="hidden md:block md:w-64 md:h-screen md:sticky md:top-0 border-r bg-white dark:bg-gray-900">
+      <div className="p-3 md:p-2">
         <div className="flex pb-2 items-center gap-3 mb-4 border-b">
           <div className="p-1 rounded-xl flex items-center justify-center">
             <Image src="/logo.png" alt="Swift Convert" width={48} height={48}/>
@@ -92,42 +95,73 @@ export function Sidebar({ currentPage, activePage, onNavigate, onShowHistory }: 
               whileHover={{ x: 4 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => {
-                onShowHistory();
+                onSetConverter('csv-to-json');
+                onNavigate('converter');
               }}
               className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors ${
                 currentPage === 'csv-to-json'
-                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
-              <Database size={16} />
+              <PiFileCsvDuotone size={16} />
               CSV → JSON
             </motion.button>
             <motion.button
               whileHover={{ x: 4 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => {
-                onShowHistory();
+                onSetConverter('json-to-csv');
+                onNavigate('converter');
               }}
               className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors ${
                 currentPage === 'json-to-csv'
-                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
-              <Code size={16} />
+              <VscJson size={16} />
               JSON → CSV
+            </motion.button>
+            <motion.button
+              whileHover={{ x: 4 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                onSetConverter('excel-to-json');
+                onNavigate('converter');
+              }}
+              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors ${
+                currentPage === 'excel-to-json'
+                  ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              <FileSpreadsheet size={16} />
+              Excel → JSON
+            </motion.button>
+            <motion.button
+              whileHover={{ x: 4 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                onSetConverter('json-to-excel');
+                onNavigate('converter');
+              }}
+              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors ${
+                currentPage === 'json-to-excel'
+                  ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              <VscJson size={16} />
+              JSON → Excel
             </motion.button>
           </div>
         </div>
       </div>
 
       {/* Promo + Storage Section */}
-      <div className="p-2 mt-8 border-t border-gray-200 dark:border-gray-800">
-        <div className="flex flex-col gap-2">
-          <MRRLeaderboardPromoCard />
-          <StorageIndicator />
-        </div>
+      <div className="p-3 border-t border-gray-200 dark:border-gray-800">
+        <MRRLeaderboardPromoCard />
       </div>
     </aside>
   );
@@ -160,39 +194,5 @@ function FileCountBadge({ page }: { page: 'all' | 'shared' }) {
     <span className="ml-auto px-2 py-0.5 text-xs rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
       {count}
     </span>
-  );
-}
-
-// Storage indicator component
-function StorageIndicator() {
-  const [storageUsed, setStorageUsed] = React.useState('0 KB');
-
-  React.useEffect(() => {
-    const updateStorageUsed = () => {
-      let total = 0;
-      for (const key in localStorage) {
-        if (localStorage.hasOwnProperty(key)) {
-          total += localStorage[key].length + key.length;
-        }
-      }
-      const used = total / 1024;
-      setStorageUsed(used < 1024 ? `${used.toFixed(1)} KB` : `${(used / 1024).toFixed(1)} MB`);
-    };
-
-    updateStorageUsed();
-    const interval = setInterval(updateStorageUsed, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="space-y-2 p-2">
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-gray-500 dark:text-gray-400">Storage Used</span>
-        <span className="text-gray-700 dark:text-gray-300">{storageUsed}</span>
-      </div>
-      <div className="text-xs text-gray-500 dark:text-gray-400">
-        Auto-cleared every 6 hours
-      </div>
-    </div>
   );
 }

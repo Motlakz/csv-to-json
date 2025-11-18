@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { X, Trash2, FileText } from 'lucide-react';
+import { X, Trash2, FileText, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import { ConversionHistoryItem } from '../types';
 
 interface HistorySidebarProps {
@@ -16,9 +17,9 @@ export function HistorySidebar({ history, onClose, onClear, onDelete }: HistoryS
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
       transition={{ type: 'spring', damping: 30 }}
-      className="fixed right-0 top-0 h-full w-96 border-l shadow-2xl z-50 bg-white dark:bg-slate-900 dark:border-gray-800 border-gray-200"
+      className="fixed right-0 top-0 h-dvh w-full sm:w-96 border-l shadow-2xl z-50 bg-white dark:bg-slate-900 dark:border-gray-800 border-gray-200"
     >
-      <div className="p-6 border-b dark:border-gray-600 border-gray-300">
+      <div className="p-4 border-b dark:border-gray-600 border-gray-300">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             History
@@ -40,9 +41,20 @@ export function HistorySidebar({ history, onClose, onClear, onDelete }: HistoryS
             Clear All
           </button>
         )}
+
+        {/* Header Promo Card */}
+        <div className="mt-4">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 p-3">
+            <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">Pro Tip</div>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Save your frequent conversions as presets for 1-click reuse.</p>
+            <Link href="#" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-cyan-600 hover:text-cyan-700 dark:text-cyan-400 dark:hover:text-cyan-300">
+              Learn more <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
       </div>
       
-      <div className="p-6 overflow-auto h-[calc(100vh-120px)]">
+      <div className="p-4 overflow-y-auto max-h-[420px]">
         {history.length === 0 ? (
           <div className="text-center py-12">
             <FileText size={48} className="mx-auto mb-4 text-gray-300 dark:text-white" />
@@ -98,6 +110,6 @@ export function HistorySidebar({ history, onClose, onClear, onDelete }: HistoryS
           </div>
         )}
       </div>
-    </motion.div>
+      </motion.div>
   );
 }

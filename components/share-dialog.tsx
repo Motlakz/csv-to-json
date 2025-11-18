@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Share2, Download, Link2, MessageCircle, Cloud, Copy, Check, Monitor, Clock, FileText, Loader2,
+  Share2, Download, Copy, Check, Monitor, Clock, FileText, Loader2,
   ShieldCheck
 } from 'lucide-react';
 import { ConversionHistoryItem, SharePlatform } from '@/types';
 import { shareToPlatform, platformInfo } from '@/lib/sharing';
+import { jsonToExcel, downloadExcelFile } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -30,11 +31,7 @@ export function ShareDialog({ open, onOpenChange, item, onShareComplete }: Share
 
   if (!item) return null;
 
-  const platformCategories = {
-    quick: ['link', 'email'],
-    messaging: ['whatsapp', 'teams'],
-    storage: ['google-drive', 'onedrive', 'dropbox'],
-  };
+  const platforms: SharePlatform[] = ['link', 'email'];
 
   const handleShare = async (platform: SharePlatform) => {
     setIsSharing(true);
@@ -42,21 +39,61 @@ export function ShareDialog({ open, onOpenChange, item, onShareComplete }: Share
     setShareProgress(0);
 
     try {
-      // Simulate progress for better UX
+      // Track start time for minimum delay
+      const startTime = Date.now();
+      const minDelay = 2000; // Minimum 2 seconds to see the progress
+
+      // Simulate progress for better UX - smoother animation over 2 seconds
       const progressInterval = setInterval(() => {
         setShareProgress(prev => {
           if (prev >= 90) {
             clearInterval(progressInterval);
             return 90;
           }
-          return prev + 10;
+          return prev + 5; // Increment by 5 every 100ms (reaches 90 in 1.8 seconds)
         });
       }, 100);
 
+      // Determine file type and MIME type based on conversion type
+      let fileExtension = 'csv';
+      let fileType = 'CSV';
+      let mimeType = 'text/csv';
+      let content = item.output;
+
+      switch (item.type) {
+        case 'csv-to-json':
+          fileExtension = 'json';
+          fileType = 'JSON';
+          mimeType = 'application/json';
+          break;
+        case 'json-to-csv':
+          fileExtension = 'csv';
+          fileType = 'CSV';
+          mimeType = 'text/csv';
+          break;
+        case 'json-to-excel':
+          // For Excel conversions, share the JSON source with json mime type
+          // The SharedFileHandler will display it as a table and allow Excel download
+          fileExtension = 'json';
+          fileType = 'Excel';
+          mimeType = 'application/json'; // Use JSON mime type for the source data
+          content = item.input; // Share the JSON source
+          break;
+        case 'excel-to-json':
+          fileExtension = 'json';
+          fileType = 'JSON';
+          mimeType = 'application/json';
+          break;
+        default:
+          fileExtension = 'txt';
+          fileType = 'File';
+          mimeType = 'text/plain';
+      }
+
       // Create enhanced share data with metadata
       const shareData = {
-        title: `${item.fileName || 'Converted File'} (${item.type.toUpperCase()})`,
-        text: `Check out this ${item.type === 'csv-to-json' ? 'JSON' : 'CSV'} file I converted using Swift Convert.`,
+        title: `${item.fileName || 'Converted File'} (${fileType})`,
+        text: `Check out this ${fileType} file I converted using Swift Convert.`,
         url: `${window.location.origin}?shared=${item.id}&timestamp=${Date.now()}`,
         metadata: {
           fileName: item.fileName,
@@ -68,9 +105,7 @@ export function ShareDialog({ open, onOpenChange, item, onShareComplete }: Share
       };
 
       // Create a file with proper naming and metadata
-      const content = item.output;
-      const mimeType = item.type === 'csv-to-json' ? 'application/json' : 'text/csv';
-      const fileName = item.fileName || `converted-${item.type}-${Date.now()}.${item.type === 'csv-to-json' ? 'json' : 'csv'}`;
+      const fileName = item.fileName || `converted-${item.type}-${Date.now()}.${fileExtension}`;
       const blob = new Blob([content], { type: mimeType });
       const file = new File([blob], fileName, { type: mimeType });
 
@@ -89,7 +124,15 @@ export function ShareDialog({ open, onOpenChange, item, onShareComplete }: Share
         }
       };
 
-      await shareToPlatform(platform, enhancedShareData);
+      // Execute share and ensure minimum delay
+      await Promise.all([
+        shareToPlatform(platform, enhancedShareData),
+        new Promise(resolve => {
+          const elapsed = Date.now() - startTime;
+          const remainingDelay = Math.max(0, minDelay - elapsed);
+          setTimeout(resolve, remainingDelay);
+        })
+      ]);
 
       clearInterval(progressInterval);
       setShareProgress(100);
@@ -102,12 +145,14 @@ export function ShareDialog({ open, onOpenChange, item, onShareComplete }: Share
       });
 
       setShowSuccess(true);
+
+      // Show success for 1.5 seconds before closing
       setTimeout(() => {
         setShowSuccess(false);
         onOpenChange(false);
         setSelectedPlatform(null);
         setShareProgress(0);
-      }, 2000);
+      }, 1500);
     } catch (error) {
       console.error('Share failed:', error);
       // Show error message - could enhance with a toast component
@@ -120,24 +165,34 @@ export function ShareDialog({ open, onOpenChange, item, onShareComplete }: Share
   };
 
   const handleDownload = () => {
-    const content = item.output;
-    const isJsonConversion = item.type === 'csv-to-json';
-    const mimeType = isJsonConversion ? 'application/json' : 'text/csv';
-
-    // Force correct extension based on conversion type
+    const isJsonConversion = item.type === 'csv-to-json' || item.type === 'excel-to-json';
+    const isExcelConversion = item.type === 'json-to-excel';
     const baseName = item.fileName ? item.fileName.replace(/\.[^/.]+$/, '') : 'converted';
-    const correctExtension = isJsonConversion ? '.json' : '.csv';
-    const fileName = baseName + correctExtension;
 
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    if (isExcelConversion) {
+      // For Excel conversions, regenerate the Excel file
+      const result = jsonToExcel(item.input);
+      if (!result.error && result.data) {
+        const excelFileName = baseName + '.xlsx';
+        downloadExcelFile(result.data, excelFileName);
+      }
+    } else {
+      // For JSON/CSV files, use standard download
+      const content = item.output;
+      const mimeType = isJsonConversion ? 'application/json' : 'text/csv';
+      const correctExtension = isJsonConversion ? '.json' : '.csv';
+      const fileName = baseName + correctExtension;
+
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
   };
 
   const formatFileSize = (size?: string) => size || 'Unknown size';
@@ -145,15 +200,6 @@ export function ShareDialog({ open, onOpenChange, item, onShareComplete }: Share
   const formatFileName = (fileName?: string) => {
     if (!fileName) return 'Converted File';
     return fileName.length > 25 ? fileName.substring(0, 22) + '...' : fileName;
-  };
-
-  const getPlatformCategoryInfo = (category: keyof typeof platformCategories) => {
-    const info = {
-      quick: { label: 'Quick Share', icon: Link2, color: 'text-blue-600' },
-      messaging: { label: 'Messaging', icon: MessageCircle, color: 'text-green-600' },
-      storage: { label: 'Cloud Storage', icon: Cloud, color: 'text-purple-600' },
-    };
-    return info[category];
   };
 
   const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -183,7 +229,7 @@ export function ShareDialog({ open, onOpenChange, item, onShareComplete }: Share
             Share Your File
           </DialogTitle>
           <DialogDescription className="text-gray-600 dark:text-gray-400">
-            Choose how you&apos; like to share {formatFileName(item.fileName)}
+            Copy a shareable link or send via email • {formatFileName(item.fileName)}
           </DialogDescription>
         </DialogHeader>
 
@@ -200,7 +246,8 @@ export function ShareDialog({ open, onOpenChange, item, onShareComplete }: Share
                 </div>
                 <div className="flex items-center flex-wrap gap-2 text-xs text-gray-600 dark:text-gray-400">
                   <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full font-medium">
-                    {item.type === 'csv-to-json' ? 'JSON' : 'CSV'}
+                    {item.type === 'csv-to-json' || item.type === 'excel-to-json' ? 'JSON' :
+                     item.type === 'json-to-excel' ? 'XLSX' : 'CSV'}
                   </span>
                   <span className="flex items-center gap-1">
                     <Monitor size={12} />
@@ -222,115 +269,105 @@ export function ShareDialog({ open, onOpenChange, item, onShareComplete }: Share
             </div>
           </div>
 
-          {/* Progress Indicator */}
-          <AnimatePresence>
-            {isSharing && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-2"
-              >
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">
-                    Sharing to {platformInfo[selectedPlatform as SharePlatform]?.name}...
-                  </span>
-                  <span className="text-blue-600 dark:text-blue-400 font-medium">
-                    {shareProgress}%
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-                  <motion.div
-                    className="h-full bg-linear-to-r from-blue-500 to-blue-600 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${shareProgress}%` }}
-                    transition={{ duration: 0.3 }}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Share Options */}
+          <div className="space-y-4">
+            {/* Progress Indicator */}
+            <AnimatePresence>
+              {isSharing && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+                >
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">
+                      Sharing to {platformInfo[selectedPlatform as SharePlatform]?.name}...
+                    </span>
+                    <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                      {shareProgress}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                    <motion.div
+                      className="h-full bg-linear-to-r from-blue-500 to-blue-600 rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${shareProgress}%` }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-          {/* Platform Categories */}
-          {Object.entries(platformCategories).map(([categoryKey, categoryPlatforms]) => {
-            const categoryInfo = getPlatformCategoryInfo(categoryKey as keyof typeof platformCategories);
-            const CategoryIcon = categoryInfo.icon;
+            <h3 className="font-medium text-gray-900 dark:text-white text-center">
+              Choose how to share
+            </h3>
+            <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+              {platforms.map((platform) => {
+                const info = platformInfo[platform];
+                const isSelected = selectedPlatform === platform;
+                const isLoading = isSharing && isSelected;
+                const IconComponent = info.icon;
 
-            return (
-              <div key={categoryKey} className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <CategoryIcon size={16} className={categoryInfo.color} />
-                  <h3 className="font-medium text-gray-900 dark:text-white">
-                    {categoryInfo.label}
-                  </h3>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {categoryPlatforms.map((platform) => {
-                    const info = platformInfo[platform as SharePlatform];
-                    const isSelected = selectedPlatform === platform;
-                    const isLoading = isSharing && isSelected;
-                    const IconComponent = info.icon;
-
-                    return (
-                      <motion.button
-                        key={platform}
-                        whileHover={{ scale: isLoading ? 1 : 1.02 }}
-                        whileTap={{ scale: isLoading ? 1 : 0.98 }}
-                        onClick={() => !isLoading && handleShare(platform as SharePlatform)}
-                        disabled={isLoading || isSharing}
+                return (
+                  <motion.button
+                    key={platform}
+                    whileHover={{ scale: isLoading ? 1 : 1.02 }}
+                    whileTap={{ scale: isLoading ? 1 : 0.98 }}
+                    onClick={() => !isLoading && handleShare(platform)}
+                    disabled={isLoading || isSharing}
+                    className={`
+                      relative flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all shadow-sm hover:shadow-md
+                      ${isSelected && !showSuccess
+                        ? `${info.color} border-transparent shadow-lg scale-105`
+                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-750'
+                      }
+                      ${isLoading || (isSharing && !isSelected) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                      }
+                      ${showSuccess && isSelected ? 'ring-2 ring-green-500 ring-offset-2' : ''}
+                    `}
+                  >
+                    <div className="relative">
+                      <IconComponent
+                        size={28}
                         className={`
-                          relative flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all shadow-sm hover:shadow-md
-                          ${isSelected && !showSuccess
-                            ? `${info.color} border-transparent shadow-lg scale-105`
-                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-750'
-                          }
-                          ${isLoading || (isSharing && !isSelected) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                          }
-                          ${showSuccess && isSelected ? 'ring-2 ring-green-500 ring-offset-2' : ''}
+                          ${isSelected && !showSuccess ? info.textColor : 'text-gray-600 dark:text-gray-400'}
+                          ${showSuccess && isSelected ? 'text-green-600' : ''}
                         `}
-                      >
-                        <div className="relative">
-                          <IconComponent
-                            size={20}
-                            className={`
-                              ${isSelected && !showSuccess ? info.textColor : 'text-gray-600 dark:text-gray-400'}
-                              ${showSuccess && isSelected ? 'text-green-600' : ''}
-                            `}
-                          />
-                          {isLoading && (
-                            <div className="absolute -top-1 -right-1">
-                              <Loader2 size={14} className="text-blue-600 animate-spin" />
-                            </div>
-                          )}
-                          {showSuccess && isSelected && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center"
-                            >
-                              <Check size={10} className="text-white" />
-                            </motion.div>
-                          )}
-                          {platform === 'link' && !isLoading && !showSuccess && (
-                            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
-                              <Copy size={6} className="text-white" />
-                            </div>
-                          )}
+                      />
+                      {isLoading && (
+                        <div className="absolute -top-2 -right-2">
+                          <Loader2 size={16} className="text-blue-600 animate-spin" />
                         </div>
-                        <span className={`text-xs font-medium text-center ${
-                          isSelected && !showSuccess ? info.textColor :
-                          showSuccess && isSelected ? 'text-green-600' :
-                          'text-gray-700 dark:text-gray-300'
-                        }`}>
-                          {info.name}
-                        </span>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+                      )}
+                      {showSuccess && isSelected && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="absolute -top-2 -right-2 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center"
+                        >
+                          <Check size={12} className="text-white" />
+                        </motion.div>
+                      )}
+                      {platform === 'link' && !isLoading && !showSuccess && (
+                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                          <Copy size={8} className="text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <span className={`text-sm font-medium text-center ${
+                      isSelected && !showSuccess ? info.textColor :
+                      showSuccess && isSelected ? 'text-green-600' :
+                      'text-gray-700 dark:text-gray-300'
+                    }`}>
+                      {info.name}
+                    </span>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
 
           {/* Success Message */}
           <AnimatePresence>

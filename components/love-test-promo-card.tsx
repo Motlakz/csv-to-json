@@ -6,14 +6,14 @@ export function LoveTestPromoCard() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-hidden rounded-2xl bg-linear-to-br from-pink-600 to-purple-600 p-4 text-white"
+      className="relative overflow-hidden rounded-2xl bg-linear-to-br from-pink-600 to-purple-600 p-3 sm:p-4 text-white"
     >
       <div className="relative z-10">
         <div className="absolute -top-4 -right-4 p-2 bg-white/20 backdrop-blur-sm rounded-bl-lg text-xs font-medium">
           Love Me?
         </div>
-        <h3 className="text-2xl font-bold mb-2">Love Test AI</h3>
-        <p className="text-blue-100 mb-4 text-sm">
+        <h3 className="text-xl sm:text-2xl font-bold mb-2">Love Test AI</h3>
+        <p className="text-blue-100 mb-4 text-xs sm:text-sm">
           Test your love with a rich assortment of love calculators<br />
           Find out if you are compatible.
         </p>

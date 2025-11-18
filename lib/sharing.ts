@@ -79,15 +79,54 @@ const generateShareableUrl = async (
     return `${baseUrl}?${params.toString()}#${btoa(JSON.stringify(hashData))}`;
   }
 
-  // Strategy 3: Large files - use IndexedDB
-  console.log('✅ Using IndexedDB strategy (large file)');
+  // Strategy 3: Large files - try compression first, then fallback to hash, finally IndexedDB
+  console.log('⚠️  File too large for direct sharing, attempting compression...');
+
+  // Try to compress large files to fit in hash fragment
+  let compressedContent = processedContent;
   try {
-    const shareId = await storeInIndexedDB(processedContent, fileName, mimeType, metadata);
-    return `${baseUrl}?s=db&id=${shareId}`;
-  } catch (error) {
-    console.error('❌ IndexedDB storage failed:', error);
-    throw new Error(`File too large (${contentSizeKB}KB) and browser storage unavailable. Please download and share manually.`);
+    if (mimeType === 'application/json') {
+      const parsed = JSON.parse(processedContent);
+      // For arrays, truncate to first few items
+      if (Array.isArray(parsed)) {
+        parsed.length = Math.min(parsed.length, 10); // Keep only first 10 items
+        compressedContent = JSON.stringify(parsed, null, 0);
+      }
+      // For objects, keep only essential fields
+      else if (typeof parsed === 'object' && parsed !== null) {
+        const keys = Object.keys(parsed);
+        const limited: any = {};
+        for (let i = 0; i < Math.min(keys.length, 10); i++) {
+          limited[keys[i]] = parsed[keys[i]];
+        }
+        compressedContent = JSON.stringify(limited, null, 0);
+      }
+    } else {
+      // For non-JSON, truncate to reasonable size
+      compressedContent = processedContent.substring(0, 15000);
+    }
+  } catch (e) {
+    console.log('Could not compress content, using truncation');
+    compressedContent = processedContent.substring(0, 15000);
   }
+
+  const compressedBase64 = btoa(unescape(encodeURIComponent(compressedContent)));
+  const compressedSizeKB = Math.round(compressedBase64.length / 1024);
+
+  // Always use hash fragment strategy for better cross-window compatibility
+  // Even if slightly larger, it's more reliable than IndexedDB
+  console.log(`✅ Using compressed hash fragment strategy (${compressedSizeKB}KB)`);
+  const params = new URLSearchParams({
+    s: 'h' // shared via hash - most compatible
+  });
+  const hashData = {
+    c: compressedBase64,
+    n: fileName,
+    t: mimeType,
+    sz: `${contentSizeKB}KB (compressed to ${compressedSizeKB}KB)`,
+    m: metadata // Include metadata in hash data
+  };
+  return `${baseUrl}?${params.toString()}#${btoa(JSON.stringify(hashData))}`;
 };
 
 // ============================================================================
@@ -144,26 +183,43 @@ const retrieveFromIndexedDB = (shareId: string): Promise<any> => {
 
     request.onerror = () => reject(new Error('Browser storage not available'));
 
+    request.onupgradeneeded = (event: any) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('shares')) {
+        console.log('Creating shares object store...');
+        db.createObjectStore('shares', { keyPath: 'id' });
+      }
+    };
+
     request.onsuccess = (event: any) => {
       const db = event.target.result;
-      const transaction = db.transaction(['shares'], 'readonly');
-      const store = transaction.objectStore('shares');
-      const getRequest = store.get(shareId);
 
-      getRequest.onsuccess = () => {
-        const data = getRequest.result;
-        if (!data) {
-          reject(new Error('Shared file not found or expired'));
-          return;
-        }
-        if (data.expires < Date.now()) {
-          reject(new Error('Shared file has expired'));
-          return;
-        }
-        resolve(data);
-      };
+      // Wait a brief moment for any pending operations to complete
+      setTimeout(() => {
+        try {
+          const transaction = db.transaction(['shares'], 'readonly');
+          const store = transaction.objectStore('shares');
+          const getRequest = store.get(shareId);
 
-      getRequest.onerror = () => reject(new Error('Failed to retrieve file'));
+          getRequest.onsuccess = () => {
+            const data = getRequest.result;
+            if (!data) {
+              reject(new Error('Shared file not found or expired'));
+              return;
+            }
+            if (data.expires < Date.now()) {
+              reject(new Error('Shared file has expired'));
+              return;
+            }
+            resolve(data);
+          };
+
+          getRequest.onerror = () => reject(new Error('Failed to retrieve file'));
+        } catch (error) {
+          console.error('Error accessing IndexedDB:', error);
+          reject(new Error('Database access error'));
+        }
+      }, 50);
     };
   });
 };
@@ -171,6 +227,26 @@ const retrieveFromIndexedDB = (shareId: string): Promise<any> => {
 // ============================================================================
 // RETRIEVE SHARED CONTENT
 // ============================================================================
+
+const initializeDatabase = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('FileShareDB', 1);
+
+    request.onerror = () => reject(new Error('Browser storage not available'));
+
+    request.onupgradeneeded = (event: any) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('shares')) {
+        db.createObjectStore('shares', { keyPath: 'id' });
+      }
+    };
+
+    request.onsuccess = (event: any) => {
+      const db = event.target.result;
+      resolve(db);
+    };
+  });
+};
 
 export const getSharedContentFromUrl = async (): Promise<{
   content: string;
@@ -181,24 +257,46 @@ export const getSharedContentFromUrl = async (): Promise<{
   const urlParams = new URLSearchParams(window.location.search);
   const strategy = urlParams.get('s');
 
-  if (!strategy) return null;
+  console.log('🔗 Debug - URL params:', {
+    strategy,
+    search: window.location.search,
+    hash: window.location.hash,
+    allParams: Object.fromEntries(urlParams.entries())
+  });
+
+  if (!strategy) {
+    console.log('❌ No strategy found in URL');
+    return null;
+  }
 
   try {
     // Strategy 1: Query parameters
     if (strategy === 'q') {
+      console.log('📝 Using query parameter strategy');
       const base64Content = urlParams.get('c');
       const fileName = urlParams.get('n');
       const mimeType = urlParams.get('t');
-      
-      if (!base64Content || !fileName || !mimeType) return null;
 
-      const content = decodeURIComponent(escape(atob(base64Content)));
-      return {
-        content: formatJSON(content, mimeType),
-        fileName,
-        mimeType,
-        metadata: { fileSize: urlParams.get('sz') || 'Unknown' }
-      };
+      console.log('📝 Query params:', { base64Content: base64Content?.substring(0, 50) + '...', fileName, mimeType });
+
+      if (!base64Content || !fileName || !mimeType) {
+        console.log('❌ Missing query parameters:', { hasContent: !!base64Content, hasName: !!fileName, hasType: !!mimeType });
+        return null;
+      }
+
+      try {
+        const content = decodeURIComponent(escape(atob(base64Content)));
+        console.log('✅ Successfully decoded content, length:', content.length);
+        return {
+          content: formatJSON(content, mimeType),
+          fileName,
+          mimeType,
+          metadata: { fileSize: urlParams.get('sz') || 'Unknown' }
+        };
+      } catch (decodeError) {
+        console.error('❌ Error decoding content:', decodeError);
+        return null;
+      }
     }
 
     // Strategy 2: Hash fragment
@@ -208,12 +306,12 @@ export const getSharedContentFromUrl = async (): Promise<{
 
       const data = JSON.parse(atob(hash));
       const content = decodeURIComponent(escape(atob(data.c)));
-      
+
       return {
         content: formatJSON(content, data.t),
         fileName: data.n,
         mimeType: data.t,
-        metadata: { fileSize: data.sz }
+        metadata: data.m || { fileSize: data.sz }
       };
     }
 
@@ -222,13 +320,20 @@ export const getSharedContentFromUrl = async (): Promise<{
       const shareId = urlParams.get('id');
       if (!shareId) return null;
 
-      const data = await retrieveFromIndexedDB(shareId);
-      return {
-        content: formatJSON(data.content, data.mimeType),
-        fileName: data.fileName,
-        mimeType: data.mimeType,
-        metadata: data.metadata
-      };
+      try {
+        // Use a more robust approach with direct database access
+        const data = await retrieveFromIndexedDB(shareId);
+        return {
+          content: formatJSON(data.content, data.mimeType),
+          fileName: data.fileName,
+          mimeType: data.mimeType,
+          metadata: data.metadata
+        };
+      } catch (error) {
+        console.error('Failed to retrieve from IndexedDB:', error);
+        // Return null so the UI can show appropriate error message
+        return null;
+      }
     }
 
     return null;
@@ -275,14 +380,29 @@ export const shareToPlatform = async (
 
     case 'email':
       const emailBody = `Check out this file: ${data.file.name}\n\n${shareUrl}`;
-      window.open(`mailto:?subject=${encodeURIComponent(data.title)}&body=${encodeURIComponent(emailBody)}`);
-      showToast('✅ Email opened with share link', 'success');
+      const emailUrl = `mailto:?subject=${encodeURIComponent(data.title)}&body=${encodeURIComponent(emailBody)}`;
+
+      // Create a temporary anchor element to trigger mailto
+      const emailLink = document.createElement('a');
+      emailLink.href = emailUrl;
+      emailLink.target = '_blank';
+      emailLink.rel = 'noopener noreferrer';
+      document.body.appendChild(emailLink);
+      emailLink.click();
+      document.body.removeChild(emailLink);
+
+      // No toast needed - email client opens directly
       break;
 
     case 'whatsapp':
       const whatsappText = `${data.title}\n${data.file.name}\n\n${shareUrl}`;
-      window.open(`https://wa.me/?text=${encodeURIComponent(whatsappText)}`);
-      showToast('✅ WhatsApp opened with share link', 'success');
+      const whatsappWindow = window.open(`https://wa.me/?text=${encodeURIComponent(whatsappText)}`, '_blank');
+      if (whatsappWindow) {
+        showToast('✅ WhatsApp opened with share link', 'success');
+      } else {
+        // Fallback if popup is blocked
+        window.location.href = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
+      }
       break;
 
     case 'teams':

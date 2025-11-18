@@ -6,22 +6,25 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Download, 
-  Share2, 
-  FileText, 
-  Calendar, 
-  HardDrive, 
-  ArrowLeft, 
-  ExternalLink, 
+import {
+  Download,
+  Share2,
+  FileText,
+  FileSpreadsheet,
+  Calendar,
+  HardDrive,
+  ArrowLeft,
+  ExternalLink,
   Info,
   Copy,
-  AlertCircle, 
-  CheckCircle
+  AlertCircle,
+  CheckCircle,
 } from 'lucide-react';
 import { ConversionType } from '@/types';
 import { useHistoryStore } from '@/lib/history-store';
 import { getSharedContentFromUrl } from '@/lib/sharing';
+import { VscJson } from 'react-icons/vsc';
+import { PiFileCsvDuotone } from 'react-icons/pi';
 
 interface SharedFileData {
   file: string;
@@ -65,7 +68,24 @@ export function SharedFileHandler() {
         const sharedContent = await getSharedContentFromUrl();
 
         if (!sharedContent) {
-          setError('Invalid or expired share link');
+          // Check what parameters were provided for better error messages
+          const urlParams = new URLSearchParams(window.location.search);
+          const strategy = urlParams.get('s');
+          const base64Content = urlParams.get('c');
+          const fileName = urlParams.get('n');
+
+          if (!strategy) {
+            setError('Invalid share link format. No sharing strategy specified.');
+          } else if (strategy === 'q' && (!base64Content || !fileName)) {
+            setError('Invalid share link. Missing required file information.');
+          } else if (strategy === 'h') {
+            setError('Invalid share link. Hash fragment is missing or corrupted.');
+          } else if (strategy === 'db') {
+            setError('Shared file not found in database or database is not available.');
+          } else {
+            setError('Invalid or expired share link');
+          }
+
           setIsLoading(false);
           return;
         }
@@ -82,6 +102,24 @@ export function SharedFileHandler() {
         } else if (sharedContent.metadata?.conversionType === 'json-to-csv' || sharedContent.mimeType === 'text/csv') {
           conversionType = 'json-to-csv';
           correctedMimeType = 'text/csv';
+        } else if (sharedContent.metadata?.conversionType === 'json-to-excel') {
+          conversionType = 'json-to-excel';
+          correctedMimeType = 'application/json'; // Store the JSON input, not the Excel output
+
+          // Ensure file has .json extension for preview, but indicates Excel conversion
+          if (!sharedContent.fileName.toLowerCase().endsWith('.json')) {
+            const baseName = sharedContent.fileName.replace(/\.[^/.]+$/, '');
+            correctedFileName = baseName + '.json';
+          }
+        } else if (sharedContent.metadata?.conversionType === 'excel-to-json') {
+          conversionType = 'excel-to-json';
+          correctedMimeType = 'application/json';
+
+          // Ensure file has .json extension
+          if (!sharedContent.fileName.toLowerCase().endsWith('.json')) {
+            const baseName = sharedContent.fileName.replace(/\.[^/.]+$/, '');
+            correctedFileName = baseName + '.json';
+          }
         } else {
           // Detect by content and file name
           const isJsonContent = sharedContent.content.trim().startsWith('[') ||
@@ -108,6 +146,13 @@ export function SharedFileHandler() {
             }
           }
         }
+
+        console.log('Setting sharedData:', {
+          sharedContentConversionType: sharedContent.metadata?.conversionType,
+          conversionType,
+          correctedFileName,
+          correctedMimeType
+        });
 
         setSharedData({
           file: sharedContent.content,
@@ -144,6 +189,22 @@ export function SharedFileHandler() {
 
   const handleDownload = () => {
     if (!sharedData) return;
+
+    // Special handling for Excel conversions
+    if (sharedData.conversion === 'json-to-excel') {
+      // For JSON to Excel files, convert the JSON content to Excel and download as .xlsx
+      import('@/lib/utils').then(({ jsonToExcel, downloadExcelFile }) => {
+        const result = jsonToExcel(sharedData.file);
+        if (!result.error && result.data.length > 0) {
+          const baseName = sharedData.name.replace(/\.[^/.]+$/, '');
+          const excelFileName = baseName + '.xlsx';
+          downloadExcelFile(result.data, excelFileName);
+        } else {
+          console.error('Failed to convert shared JSON to Excel:', result.error);
+        }
+      });
+      return;
+    }
 
     // Ensure the file extension matches the content type
     let downloadFileName = sharedData.name;
@@ -188,6 +249,13 @@ export function SharedFileHandler() {
   const getFileTypeLabel = () => {
     if (!sharedData) return 'Unknown';
 
+    // Check by conversion type first for Excel conversions
+    if (sharedData.conversion === 'json-to-excel') {
+      return 'Excel';
+    } else if (sharedData.conversion === 'excel-to-json') {
+      return 'JSON';
+    }
+
     // Check by MIME type first
     if (sharedData.type === 'application/json') {
       return 'JSON';
@@ -213,10 +281,93 @@ export function SharedFileHandler() {
     return sharedData.type.split('/')[1]?.toUpperCase() || 'File';
   };
 
+  const getFileTypeInfo = (fileType?: string) => {
+    const type = fileType || getFileTypeLabel();
+
+    const typeConfig = {
+      JSON: {
+        icon: VscJson,
+        color: 'text-orange-600',
+        bgColor: 'bg-orange-100 dark:bg-orange-900/30',
+        badgeColor: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300',
+        previewBg: 'dark:bg-orange-900/10 bg-orange-50'
+      },
+      Excel: {
+        icon: FileSpreadsheet,
+        color: 'text-emerald-600',
+        bgColor: 'bg-emerald-100 dark:bg-emerald-900/30',
+        badgeColor: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300',
+        previewBg: 'bg-white dark:bg-gray-800'
+      },
+      CSV: {
+        icon: PiFileCsvDuotone,
+        color: 'text-blue-600',
+        bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+        badgeColor: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300',
+        previewBg: 'dark:bg-blue-900/10 bg-blue-50'
+      }
+    };
+
+    return typeConfig[type as keyof typeof typeConfig] || {
+      icon: FileText,
+      color: 'text-gray-600',
+      bgColor: 'bg-gray-100 dark:bg-gray-900/30',
+      badgeColor: 'bg-gray-100 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300',
+      previewBg: 'dark:bg-slate-900/20 bg-slate-200'
+    };
+  };
+
   const getHighlightedContent = () => {
     if (!sharedData?.file) return '';
 
     const content = sharedData.file;
+
+    // Special handling for JSON-to-Excel conversions - show as table
+    // Note: excel-to-json should show as regular JSON with syntax highlighting
+    if (sharedData.conversion === 'json-to-excel') {
+      try {
+        const jsonData = JSON.parse(content);
+        if (Array.isArray(jsonData) && jsonData.length > 0) {
+          // Create a table preview with improved styling
+          const headers = Object.keys(jsonData[0]);
+          const maxRows = 20; // Show more rows for better preview
+          const displayRows = jsonData.slice(0, maxRows);
+
+          const tableRows = displayRows.map((row, index) => {
+            const cells = headers.map(header => {
+              const value = row[header];
+              // Format the value nicely
+              const displayValue = value === null || value === undefined ? '' : String(value);
+              return `<td class="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300" title="${displayValue}">${displayValue}</td>`;
+            }).join('');
+
+            return `<tr class="${index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-750'}">${cells}</tr>`;
+          }).join('');
+
+          const headerCells = headers.map(header =>
+            `<th class="px-3 py-2 text-left font-medium text-emerald-700 dark:text-emerald-300 border border-gray-200 dark:border-gray-700 bg-emerald-50 dark:bg-emerald-900/20 sticky top-0">${header}</th>`
+          ).join('');
+
+          return `
+            <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+              <table class="w-full text-sm border-collapse">
+                <thead>
+                  <tr>${headerCells}</tr>
+                </thead>
+                <tbody>
+                  ${tableRows}
+                </tbody>
+              </table>
+            </div>
+            ${jsonData.length > maxRows ? `<p class="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">Showing first ${maxRows} of ${jsonData.length} rows • Download to see all data</p>` : ''}
+          `;
+        }
+      } catch (e) {
+        // If JSON parsing fails, fall back to regular display
+        console.warn('Failed to parse JSON for Excel preview:', e);
+      }
+    }
+
     const isJson = sharedData.type === 'application/json' ||
                    content.trim().startsWith('[') ||
                    content.trim().startsWith('{');
@@ -227,7 +378,7 @@ export function SharedFileHandler() {
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        .replace(/(".*?")/g, '<span class="text-green-600 dark:text-green-400">$1</span>')
+        .replace(/(".*?")/g, '<span>$1</span>')
         .replace(/(\b\d+\.?\d*\b)/g, '<span class="text-blue-600 dark:text-blue-400">$1</span>')
         .replace(/\b(true|false|null)\b/g, '<span class="text-purple-600 dark:text-purple-400">$1</span>');
     }
@@ -317,8 +468,14 @@ export function SharedFileHandler() {
           <CardHeader>
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                  <FileText size={24} className="text-blue-600 dark:text-blue-400" />
+                <div className={`p-3 rounded-lg ${getFileTypeInfo().bgColor}`}>
+                  {(() => {
+                    const fileInfo = getFileTypeInfo();
+                    const IconComponent = fileInfo.icon;
+                    return (
+                      <IconComponent size={24} className={fileInfo.color} />
+                    );
+                  })()}
                 </div>
                 <div>
                   <CardTitle className="text-xl">{sharedData.name}</CardTitle>
@@ -334,7 +491,7 @@ export function SharedFileHandler() {
                   </CardDescription>
                 </div>
               </div>
-              <Badge variant="outline" className="shrink-0">
+              <Badge variant="secondary" className="shrink-0">
                 {getFileTypeLabel()}
               </Badge>
             </div>
@@ -358,33 +515,55 @@ export function SharedFileHandler() {
             <div className="flex flex-wrap gap-3">
               {hasContent && (
                 <>
-                  <Button onClick={handleDownload} className="flex-1 sm:flex-none">
-                    <Download size={16} className="mr-2" />
-                    Download
-                  </Button>
-                  <Button 
-                    onClick={handleCopyContent} 
-                    variant="outline" 
-                    className="flex-1 sm:flex-none"
-                  >
-                    {copied ? (
-                      <>
-                        <CheckCircle size={16} className="mr-2" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={16} className="mr-2" />
-                        Copy Content
-                      </>
-                    )}
-                  </Button>
+                  {(() => {
+                    const fileInfo = getFileTypeInfo();
+                    return (
+                      <Button
+                        onClick={handleDownload}
+                        className={`flex-1 sm:flex-none ${
+                          sharedData.conversion === 'json-to-excel'
+                            ? 'bg-emerald-600 hover:bg-emerald-700'
+                            : sharedData.conversion === 'json-to-csv'
+                            ? 'bg-blue-600 hover:bg-blue-700'
+                            : fileInfo.color === 'text-orange-600'
+                            ? 'bg-orange-600 hover:bg-orange-700'
+                            : ''
+                        }`}
+                      >
+                        <Download size={16} className="mr-2" />
+                        Download {sharedData.conversion === 'json-to-excel' ? 'Excel' : ''}
+                      </Button>
+                    );
+                  })()}
+
+                  {(() => {
+                    return (
+                      <Button
+                        onClick={handleCopyContent}
+                        variant="outline"
+                        className="flex-1 sm:flex-none"
+                      >
+                        {copied ? (
+                          <>
+                            <CheckCircle size={16} className="mr-2" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={16} className="mr-2" />
+                            Copy Content
+                          </>
+                        )}
+                      </Button>
+                    );
+                  })()}
                 </>
               )}
-              <Button 
-                onClick={handleBackToConverter} 
-                variant="outline" 
-                className="flex-1 sm:flex-none"
+
+              <Button
+                onClick={handleBackToConverter}
+                variant="outline"
+                className="flex-1 sm:flex-none hover:bg-gray-50 dark:hover:bg-gray-900/20"
               >
                 <ArrowLeft size={16} className="mr-2" />
                 New Conversion
@@ -398,31 +577,57 @@ export function SharedFileHandler() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <FileText size={18} />
+                {(() => {
+                  const fileInfo = getFileTypeInfo();
+                  const IconComponent = fileInfo.icon;
+                  return (
+                    <IconComponent size={18} className={fileInfo.color} />
+                  );
+                })()}
                 File Preview
               </CardTitle>
               <CardDescription>
-                {sharedData.file.length.toLocaleString()} characters • {sharedData.file.split('\n').length} lines
+                {sharedData.conversion === 'json-to-excel' ? (
+                  <>Excel data preview • {sharedData.file.length.toLocaleString()} characters total</>
+                ) : (
+                  <>{sharedData.file.length.toLocaleString()} characters • {sharedData.file.split('\n').length} lines</>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="dark:bg-slate-900/20 bg-slate-200 rounded-lg p-4 border dark:border-gray-700 border-gray-400">
+              <div className={`rounded-lg p-4 border dark:border-gray-700 border-gray-400 ${
+                sharedData.conversion === 'json-to-excel'
+                  ? getFileTypeInfo('Excel').previewBg
+                  : getFileTypeInfo().previewBg
+              }`}>
                 <div className="flex items-center justify-between mb-3 pb-2 border-b dark:border-gray-700 border-gray-400">
                   <span className="text-xs text-gray-700 dark:text-gray-400">
-                    {getFileTypeLabel()} File
+                    {sharedData.conversion === 'json-to-excel' ? 'Excel Spreadsheet' : `${getFileTypeLabel()} File`}
                   </span>
-                  {getFileTypeLabel() === 'JSON' && (
-                    <span className="text-xs bg-green-900/30 text-green-300 px-2 py-1 rounded-full">
+                  {sharedData.conversion === 'json-to-excel' ? (
+                    <span className="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded-full">
+                      Table Preview
+                    </span>
+                  ) : getFileTypeLabel() === 'JSON' ? (
+                    <span className="text-xs bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 px-2 py-1 rounded-full">
                       Syntax Highlighted
                     </span>
-                  )}
+                  ) : getFileTypeLabel() === 'CSV' ? (
+                    <span className="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+                      Comma Separated
+                    </span>
+                  ) : null}
                 </div>
                 <div
-                  className="text-sm overflow-x-auto max-h-96 overflow-y-auto font-mono dark:text-gray-400 text-gray-800"
+                  className={`text-sm overflow-x-auto max-h-96 overflow-y-auto ${
+                    sharedData.conversion === 'json-to-excel'
+                      ? ''
+                      : 'font-mono dark:text-gray-400 text-gray-800'
+                  }`}
                   dangerouslySetInnerHTML={{ __html: getHighlightedContent() }}
                   style={{
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
+                    whiteSpace: sharedData.conversion === 'json-to-excel' ? 'normal' : 'pre-wrap',
+                    wordBreak: sharedData.conversion === 'json-to-excel' ? 'normal' : 'break-word',
                     tabSize: 2
                   }}
                 />
