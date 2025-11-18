@@ -41,7 +41,7 @@ export function Sidebar({ currentPage, activePage, onNavigate, onShowHistory, on
   ];
 
   return (
-    <aside className="hidden md:block md:w-64 md:h-screen md:sticky md:top-0 border-r bg-white dark:bg-gray-900">
+    <aside className="hidden md:block md:w-64 min-h-screen md:sticky md:top-0 border-r relative bg-white dark:bg-gray-900">
       <div className="p-3 md:p-2">
         <div className="flex pb-2 items-center gap-3 mb-4 border-b">
           <div className="p-1 rounded-xl flex items-center justify-center">
@@ -160,7 +160,7 @@ export function Sidebar({ currentPage, activePage, onNavigate, onShowHistory, on
       </div>
 
       {/* Promo + Storage Section */}
-      <div className="p-3 border-t border-gray-200 dark:border-gray-800">
+      <div className="p-3 border-t absolute bottom-0 border-gray-200 dark:border-gray-800">
         <MRRLeaderboardPromoCard />
       </div>
     </aside>

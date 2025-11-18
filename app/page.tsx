@@ -210,7 +210,7 @@ function HomePage() {
       </AnimatePresence>
       </div>
 
-      <footer className="border-t bg-white dark:bg-gray-950 text-gray-600 dark:text-gray-400 md:ml-64">
+      <footer className="border-t bg-white dark:bg-gray-950 text-gray-600 dark:text-gray-400">
         <div className="max-w-7xl px-4 sm:px-6 py-6 mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-sm text-center sm:text-left">© {new Date().getFullYear()} Swift Convert.</div>
           <div className="flex flex-wrap items-center justify-center gap-2">
