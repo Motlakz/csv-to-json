@@ -17,17 +17,17 @@ export function MRRLeaderboardPromoCard() {
     >
       <div className="flex flex-col gap-3">
         <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-          Tired of Fake MRR Screenshots?
+          Verify Your Revenue Publicly
         </h4>
         <p className="text-xs text-gray-600 leading-relaxed dark:text-gray-400">
-          Share your MRR in public to establish trust and build credibility.
+          Connect your payment processor and share verified MRR with potential customers. Build trust through transparency.
         </p>
 
         <Link
           href="https://authenticmrr.com?ref=swiftconvert"
           className="text-xs flex items-center gap-1 text-cyan-600 hover:text-cyan-700 dark:text-cyan-400 dark:hover:text-cyan-300 font-medium"
         >
-          Build Your Trust Today
+          Get Verified
           <ArrowRight size={14} />
         </Link>
       </div>
