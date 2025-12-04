@@ -1,0 +1,20 @@
+Swift Convert - CSV to JSON
+
+Purpose:
+A fast online CSV to JSON converter designed for developers, analysts, and data-processing workflows.
+
+Primary Feature:
+- CSV → JSON conversion (instant, client-side, accurate)
+
+Additional Tools:
+- CSV → Markdown Table
+- Markdown → CSV
+
+Ideal Users:
+- Developers
+- Data analysts
+- Students
+- Automation builders
+
+URL:
+https://csvtojsonconverter.vercel.app

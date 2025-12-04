@@ -1,0 +1,42 @@
+# Default access for all crawlers
+User-agent: *
+Allow: /
+
+# LLM-specific AI crawlers
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: PerplexicaBot
+Allow: /
+
+User-agent: PPLXBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: GoogleOther
+Allow: /
+
+User-agent: GoogleOther-Image
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: BingPreview
+Allow: /
+
+User-agent: MSSearch
+Allow: /
+
+Sitemap: https://csvtojsonconverter.vercel.app/sitemap.xml

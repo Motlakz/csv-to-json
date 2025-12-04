@@ -61,7 +61,7 @@ export function RecommendedTools({ onNavigate }: RecommendedToolsProps) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => onNavigate('json-to-excel')}
-          className="p-4 rounded-lg border text-left transition-colors dark:border-gray-700 dark:bg-slate-900/20 bg-gray-50 border-gray-200 hover:border-green-400"
+          className="p-4 rounded-lg border text-left transition-colors dark:border-gray-700 dark:bg-slate-900/20 bg-gray-50 border-gray-200 hover:border-violet-400"
         >
           <div className="flex items-center gap-3 mb-2">
             <div className="w-8 h-8 rounded-lg bg-violet-600/10 flex items-center justify-center">
@@ -80,7 +80,7 @@ export function RecommendedTools({ onNavigate }: RecommendedToolsProps) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => onNavigate('excel-to-json')}
-          className="p-4 rounded-lg border text-left transition-colors dark:border-gray-700 dark:bg-slate-900/20 bg-gray-50 border-gray-200 hover:border-orange-400"
+          className="p-4 rounded-lg border text-left transition-colors dark:border-gray-700 dark:bg-slate-900/20 bg-gray-50 border-gray-200 hover:border-green-400"
         >
           <div className="flex items-center gap-3 mb-2">
             <div className="w-8 h-8 rounded-lg bg-green-600/10 flex items-center justify-center">
