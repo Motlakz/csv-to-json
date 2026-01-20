@@ -10,7 +10,7 @@ import { QuickHistoryWidget } from "@/components/quick-history-widget";
 import { RecommendedTools } from "@/components/recommended-tools";
 import { Sidebar } from "@/components/sidebar";
 import { FilesView } from "@/components/files-view";
-import { LoveTestPromoCard } from "@/components/love-test-promo-card";
+import { LoveTestPromoCard } from "@/components/common/love-test-promo-card";
 import { useHistoryStore, useHydratedHistoryStore } from "@/lib/history-store";
 import { AnimatePresence } from "framer-motion";
 import { useState, Suspense } from "react";

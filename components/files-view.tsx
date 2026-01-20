@@ -5,9 +5,10 @@ import { VscJson } from 'react-icons/vsc';
 import { ConversionHistoryItem, SharePlatform } from '@/types';
 import { ShareDialog } from './share-dialog';
 import { PiFileCsvDuotone, PiMicrosoftExcelLogoDuotone } from 'react-icons/pi';
-import { StyledLoveTestPromoCard } from './styled-love-test-promo-card';
-import { StyledMRRLeaderboardPromoCard } from './styled-mrr-leaderboard-promo-card';
 import { jsonToExcel, downloadExcelFile } from '@/lib/utils';
+import { StyledLoveTestPromoCard } from './common/styled-love-test-promo-card';
+import { StyledMRRLeaderboardPromoCard } from './common/styled-mrr-leaderboard-promo-card';
+
 // Simple date formatting utility
 const formatDistanceToNow = (timestamp: number): string => {
   const now = Date.now();
