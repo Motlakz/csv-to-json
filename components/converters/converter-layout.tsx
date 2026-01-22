@@ -43,11 +43,11 @@ function ConverterLayoutContent({ config, children }: ConverterLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col overflow-x-hidden">
       <div className="flex flex-1">
         <CollapsibleSidebar />
 
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <Header title={config.name} onShowHistory={() => setShowHistory(true)} />
 
           {/* Mobile navigation when sidebar is hidden */}
@@ -172,7 +172,7 @@ function MobileNav({ currentConverter, onShowHistory }: { currentConverter: Conv
     <div className="md:hidden">
       {/* Converter tabs */}
       <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           <button
             onClick={onShowHistory}
             className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors bg-blue-600 text-white"

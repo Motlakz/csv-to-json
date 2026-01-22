@@ -44,18 +44,18 @@ function FilesPageLayoutContent({ title, children }: FilesPageLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col overflow-x-hidden">
       <div className="flex flex-1">
         {/* Collapsible Sidebar */}
         <CollapsibleSidebar />
 
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <Header title={title} onShowHistory={() => setShowHistory(true)} />
 
           {/* Mobile navigation when sidebar is hidden */}
           <div className="md:hidden">
             <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-              <div className="flex gap-2 overflow-x-auto pb-1">
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 <Link
                   href="/converters"
                   className="whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"

@@ -121,6 +121,15 @@
   }
 }
 
+/* Hide scrollbar for horizontal scroll areas on mobile */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Prose styles for blog content */
 .prose {
   color: rgb(55, 65, 81);

@@ -2,18 +2,20 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
-import { ArrowRight, FileSpreadsheet } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, FileSpreadsheet, Menu, X } from 'lucide-react';
 import { VscJson } from 'react-icons/vsc';
 import { PiFileCsvDuotone, PiMicrosoftExcelLogoBold } from 'react-icons/pi';
 import { LoveTestPromoCard } from '@/components/common/love-test-promo-card';
 import { MRRLeaderboardPromoCard } from '@/components/common/mrr-leaderboard-promo';
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SharedFileHandler } from '@/components/shared-file-handler';
+import { ThemeToggle } from '@/components/common/theme-toggle';
 
 function HomePage() {
   const searchParams = useSearchParams();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Check if there's a shared file in the URL
   const newShareType = searchParams.get('s');
@@ -30,45 +32,100 @@ function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
       {/* Hero Section */}
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Image src="/logo.png" alt="Swift Convert" width={48} height={48} />
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">Swift Convert</span>
-            </div>
+            <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <Image src="/logo.png" alt="Swift Convert" width={40} height={40} className="w-8 h-8 sm:w-12 sm:h-12 flex-shrink-0" />
+              <span className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white truncate">Swift Convert</span>
+            </Link>
+
+            {/* Desktop navigation */}
             <nav className="hidden md:flex items-center gap-6">
+              <Link href="/converters" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                Converters
+              </Link>
               <Link href="/all-files" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                 All Files
               </Link>
               <Link href="/shared-files" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                 Shared Files
               </Link>
+              <ThemeToggle />
             </nav>
+
+            {/* Mobile menu button */}
+            <div className="flex items-center gap-2 md:hidden">
+              <ThemeToggle />
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                aria-label="Toggle menu"
+              >
+                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            </div>
           </div>
+
+          {/* Mobile navigation dropdown */}
+          <AnimatePresence>
+            {mobileMenuOpen && (
+              <motion.nav
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="md:hidden overflow-hidden"
+              >
+                <div className="pt-4 pb-2 space-y-1">
+                  <Link
+                    href="/converters"
+                    className="block px-3 py-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Converters
+                  </Link>
+                  <Link
+                    href="/all-files"
+                    className="block px-3 py-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    All Files
+                  </Link>
+                  <Link
+                    href="/shared-files"
+                    className="block px-3 py-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Shared Files
+                  </Link>
+                </div>
+              </motion.nav>
+            )}
+          </AnimatePresence>
         </div>
       </header>
 
       {/* Hero Content */}
-      <section className="py-12 md:py-20">
+      <section className="py-8 sm:py-12 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-12"
+            className="text-center mb-8 sm:mb-12"
           >
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 px-2">
               Free Online File Converters
             </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            <p className="text-base sm:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto px-2">
               Convert between CSV, JSON, Excel and more. Fast, secure, and completely free. No signup required.
             </p>
           </motion.div>
 
           {/* Converter Cards */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
             <ConverterCard
               href="/csv-to-json"
               icon={<PiFileCsvDuotone size={32} />}
@@ -100,7 +157,7 @@ function HomePage() {
           </div>
 
           {/* Features Grid */}
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-8 sm:mb-12">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -159,7 +216,7 @@ function HomePage() {
           </div>
 
           {/* Promo Section */}
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <LoveTestPromoCard />
             <MRRLeaderboardPromoCard />
           </div>
@@ -224,18 +281,18 @@ function ConverterCard({ href, icon, title, description, colorClass }: Converter
       <motion.div
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className={`bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 transition-all ${colors.hover} h-full flex flex-col`}
+        className={`bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 transition-all ${colors.hover} h-full flex flex-col`}
       >
-        <div className={`w-14 h-14 ${colors.bg} rounded-lg flex items-center justify-center mb-4`}>
-          <span className={colors.text}>{icon}</span>
+        <div className={`w-12 h-12 sm:w-14 sm:h-14 ${colors.bg} rounded-lg flex items-center justify-center mb-3 sm:mb-4`}>
+          <span className={`${colors.text} [&>svg]:w-6 [&>svg]:h-6 sm:[&>svg]:w-8 sm:[&>svg]:h-8`}>{icon}</span>
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2">
           {title}
         </h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-4 flex-1">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-3 sm:mb-4 flex-1">
           {description}
         </p>
-        <div className={`flex items-center gap-2 ${colors.text} font-medium`}>
+        <div className={`flex items-center gap-2 ${colors.text} font-medium text-sm sm:text-base`}>
           Convert Now
           <ArrowRight size={16} />
         </div>

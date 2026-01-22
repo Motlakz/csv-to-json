@@ -144,7 +144,7 @@ export function CollapsibleSidebar({ showFileCounts = true }: CollapsibleSidebar
   const categoryList = Object.values(categories);
 
   return (
-    <aside className="hidden md:flex md:w-64 min-h-screen md:sticky md:top-0 border-r bg-white dark:bg-gray-900 flex-col">
+    <aside className="hidden md:flex md:w-64 min-h-screen md:sticky md:top-0 border-r bg-white dark:bg-gray-900 flex-col flex-shrink-0">
       <div className="flex-1 overflow-y-auto p-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3 pb-4 mb-4 border-b border-gray-200 dark:border-gray-800">
